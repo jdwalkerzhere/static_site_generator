@@ -25,3 +25,32 @@ class HTMLNode:
         if not self.props:
             return ''
         return ''.join([f' {k}="{v}"' for k, v in self.props.items()])
+
+
+class LeafNode(HTMLNode):
+    def __init__(self, tag=None, value=None, children=None, props=None) -> None:
+        super().__init__(tag, value, children, props)
+
+    def to_html(self):
+        if not self.value:
+            raise ValueError("Leaf Nodes must contain a value")
+        if self.children:
+            raise ValueError("Leaf Nodes cannot have children")
+        if not self.tag:
+            return self.value
+        return f"<{self.tag}{self.props_to_html()}>{self.value}</{self.tag}>"
+
+
+class ParentNode(HTMLNode):
+    def __init__(self, tag=None, value=None, children=None, props=None) -> None:
+        super().__init__(tag, value, children, props)
+
+    def to_html(self):
+        if not self.tag:
+            raise ValueError("Parent Nodes must have a tag")
+        if not self.children:
+            raise ValueError("Parent Nodes must have children")
+        if not self.tag:
+            return self.value
+        children = [child.to_html() for child in self.children]
+        return f"<{self.tag}{self.props_to_html()}>{self.value}{''.join(children)}</{self.tag}>"
