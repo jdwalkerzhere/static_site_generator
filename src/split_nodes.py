@@ -123,3 +123,10 @@ def split_links(nodes: List[TextNode]) -> List[TextNode]:
             new_nodes.append(TextNode(text=node.text[start:], type=TextType.TEXT))
 
     return new_nodes
+
+def splitter(node: TextNode) -> List[TextNode]:
+    images_split = split_images([node])
+    links_split = split_links(images_split)
+    bolds_split = split_nodes(links_split, '**', TextType.BOLD)
+    italics_split = split_nodes(bolds_split, '*', TextType.ITALIC)
+    codes_split = split_nodes(italics_split, '`', TextType.CODE)

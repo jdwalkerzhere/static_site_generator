@@ -1,1 +1,1 @@
-python3 -m unittest discover -vs src
+python3 -m unittest discover -vs src/

@@ -2,8 +2,7 @@ import re
 
 from typing import List
 
-
-def markdown_to_blocks(markdown) -> List[str]:
+def markdown_to_blocks(markdown: str) -> List[str]:
     blocks = []
 
     curr_block = []

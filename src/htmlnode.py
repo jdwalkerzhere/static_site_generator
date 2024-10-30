@@ -1,5 +1,7 @@
 from typing import Any, Dict, List
 
+from md_to_blocks import markdown_to_blocks, block_to_block_type, block_spec
+from split_nodes import splitter
 from textnode import TextType, TextNode
 
 
@@ -42,7 +44,7 @@ class LeafNode(HTMLNode):
 
 
 class ParentNode(HTMLNode):
-    def __init__(self, tag=None, value=None, children=None, props=None) -> None:
+    def __init__(self, tag=None, value=None, children=[], props=None) -> None:
         super().__init__(tag, value, children, props)
 
     def to_html(self):
@@ -74,3 +76,30 @@ def text_node_to_html_node(textnode: TextNode) -> LeafNode:
             )
         case _:
             raise ValueError(f"Non-implemented TextNode Type: {textnode.text_type}")
+
+
+def md_to_html_doc(markdown: str) -> ParentNode:
+    root_node = ParentNode(tag='div')
+
+    blocked_md = markdown_to_blocks(markdown)
+
+    for block in blocked_md:
+        block_type = block_to_block_type(block)
+        match block_type:
+            case 'HEADING':
+                i = 0
+                while block[i] == '#':
+                    i += 1
+                i += 1
+                raise NotImplementedError
+            case 'CODE':
+                raise NotImplementedError
+            case 'QUOTE':
+                raise NotImplementedError
+            case 'UNORDERED_LIST':
+                raise NotImplementedError
+            case 'ORDERED_LIST':
+                raise NotImplementedError
+            case _:
+                pass
+    return root_node
