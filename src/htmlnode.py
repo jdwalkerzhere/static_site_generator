@@ -6,10 +6,10 @@ from textnode import TextType, TextNode
 
 
 class HTMLNode:
-    def __init__(self, tag=None, value=None, children=None, props=None) -> None:
+    def __init__(self, tag=None, value=None, children=[], props=None) -> None:
         self.tag: str | None = tag
         self.value: str | None = value
-        self.children: List[HTMLNode] | None = children
+        self.children: List[HTMLNode] = children
         self.props: Dict[str, Any] | None = props
 
     def __eq__(self, value: object, /) -> bool:
@@ -30,7 +30,7 @@ class HTMLNode:
 
 
 class LeafNode(HTMLNode):
-    def __init__(self, tag=None, value=None, children=None, props=None) -> None:
+    def __init__(self, tag=None, value=None, children=[], props=None) -> None:
         super().__init__(tag, value, children, props)
 
     def to_html(self):
@@ -47,15 +47,13 @@ class ParentNode(HTMLNode):
     def __init__(self, tag=None, value=None, children=[], props=None) -> None:
         super().__init__(tag, value, children, props)
 
-    def to_html(self):
+    def to_html(self) -> str:
         if not self.tag:
             raise ValueError("Parent Nodes must have a tag")
         if not self.children:
             raise ValueError("Parent Nodes must have children")
-        if not self.tag:
-            return self.value
         children = [child.to_html() for child in self.children]
-        return f"<{self.tag}{self.props_to_html()}>{self.value}{''.join(children)}</{self.tag}>"
+        return f"<{self.tag}{self.props_to_html()}>{''.join(children)}</{self.tag}>"
 
 
 def text_node_to_html_node(textnode: TextNode) -> LeafNode:
@@ -78,28 +76,57 @@ def text_node_to_html_node(textnode: TextNode) -> LeafNode:
             raise ValueError(f"Non-implemented TextNode Type: {textnode.text_type}")
 
 
-def md_to_html_doc(markdown: str) -> ParentNode:
+def md_to_html_doc(markdown: str) -> str:
     root_node = ParentNode(tag='div')
 
     blocked_md = markdown_to_blocks(markdown)
 
     for block in blocked_md:
+        if not block:
+            continue
+
         block_type = block_to_block_type(block)
         match block_type:
             case 'HEADING':
-                i = 0
-                while block[i] == '#':
-                    i += 1
-                i += 1
-                raise NotImplementedError
+                # Gathering number of #'s for proper <h> tag count
+                h_count = block.index('# ') + 1
+                textnode = TextNode(text=block.lstrip('# '), type=TextType.TEXT)
+                split_text = splitter(textnode)
+                child_nodes = [text_node_to_html_node(t) for t in split_text]
+                header = ParentNode(tag=f'h{h_count}', children=child_nodes)
+                root_node.children.append(header)
+
             case 'CODE':
-                raise NotImplementedError
+                textnode = TextNode(text=block.strip('```'), type=TextType.CODE)
+                leafnode = text_node_to_html_node(textnode)
+                code_block = ParentNode(tag='pre', children=[leafnode])
+                root_node.children.append(code_block)
+
+            # Possibility: Make each line of the quote its own seperate <p> tagged Leaf Node?
             case 'QUOTE':
-                raise NotImplementedError
+                text_nodes = [TextNode(text=l.strip('> '), type=TextType.TEXT) for l in block.split('\n')]
+                p_tag_leaves = [LeafNode(tag='p', value=n.text) for n in text_nodes]
+                quote_node = ParentNode(tag='blockquote', children=p_tag_leaves)
+                root_node.children.append(quote_node)
             case 'UNORDERED_LIST':
-                raise NotImplementedError
+                text_nodes = [TextNode(text=l.lstrip('*- '), type=TextType.TEXT) for l in block.split('\n')]
+                children = [LeafNode(tag='li', value=n.text) for n in text_nodes]
+                list_parent = ParentNode(tag='ul', children=children)
+                root_node.children.append(list_parent)
+
             case 'ORDERED_LIST':
-                raise NotImplementedError
+                text_nodes = [TextNode(text=l[l.index(' ')+1:], type=TextType.TEXT) for l in block.split('\n')]
+                children = [LeafNode(tag='li', value=n.text) for n in text_nodes]
+                list_parent = ParentNode(tag='ol', children=children)
+                root_node.children.append(list_parent)
+
+            case 'PARAGRAPH':
+                split_nodes = splitter(TextNode(text=block, type=TextType.TEXT))
+                leaves = [text_node_to_html_node(node) for node in split_nodes]
+                paragraph = ParentNode(tag='p', children=leaves)
+                root_node.children.append(paragraph)
+
             case _:
-                pass
-    return root_node
+                raise ValueError(f'Unexpected block type: {block_type}')
+
+    return root_node.to_html()

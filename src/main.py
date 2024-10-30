@@ -1,12 +1,10 @@
-from textnode import TextNode, TextType
-
-from lexer import MarkdownDocument
+from htmlnode import md_to_html_doc
 
 
 def main():
     with open("./content/test_md.md", "r") as md_file:
-        md_file = MarkdownDocument(md_file.read())
-        print(md_file.content)
+        html_string = md_to_html_doc(md_file.read())
+        print(html_string)
 
 
 if __name__ == "__main__":

@@ -130,3 +130,4 @@ def splitter(node: TextNode) -> List[TextNode]:
     bolds_split = split_nodes(links_split, '**', TextType.BOLD)
     italics_split = split_nodes(bolds_split, '*', TextType.ITALIC)
     codes_split = split_nodes(italics_split, '`', TextType.CODE)
+    return codes_split
