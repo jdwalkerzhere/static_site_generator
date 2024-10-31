@@ -11,7 +11,7 @@ def split_nodes(
 
     for node in old_nodes:
         # Since we're not allowing nested text styles
-        if node.text_type != 'text':
+        if node.text_type != "text":
             new_nodes.append(node)
             continue
 
@@ -40,12 +40,12 @@ def split_nodes(
     return new_nodes
 
 
-def extract_images(text: str) -> List[Tuple[str,str]]:
-    return re.findall(pattern=r'!\[(.*?)\]\((.*?)\)', string=text)
+def extract_images(text: str) -> List[Tuple[str, str]]:
+    return re.findall(pattern=r"!\[(.*?)\]\((.*?)\)", string=text)
 
 
-def extract_links(text: str) -> List[Tuple[str,str]]:
-    return re.findall(pattern=r'(?<!\!)\[(.*?)\]\((.*?)\)', string=text)
+def extract_links(text: str) -> List[Tuple[str, str]]:
+    return re.findall(pattern=r"(?<!\!)\[(.*?)\]\((.*?)\)", string=text)
 
 
 def split_images(nodes: List[TextNode]) -> List[TextNode]:
@@ -63,9 +63,11 @@ def split_images(nodes: List[TextNode]) -> List[TextNode]:
         start = 0
 
         while j < len(node.text):
-            if node.text[i:j] == '![':
+            if node.text[i:j] == "![":
                 if abs(start - i) != 0:
-                    new_nodes.append(TextNode(text=node.text[start:i], type=TextType.TEXT))
+                    new_nodes.append(
+                        TextNode(text=node.text[start:i], type=TextType.TEXT)
+                    )
                 alt_text, url = extracted_images.pop()
                 new_nodes.append(TextNode(text=alt_text, type=TextType.IMG, url=url))
                 i += 5 + len(alt_text) + len(url)
@@ -87,32 +89,33 @@ def split_links(nodes: List[TextNode]) -> List[TextNode]:
     for node in nodes:
         extracted_links = extract_links(node.text)[::-1]
 
-        if not extracted_links or node.text_type != 'text':
+        if not extracted_links or node.text_type != "text":
             new_nodes.append(node)
             continue
 
         hyperlink, url = extracted_links.pop()
 
-        str_link = f'[{hyperlink}]({url})'
+        str_link = f"[{hyperlink}]({url})"
 
         i = 0
         j = len(str_link)
 
         start = 0
 
-
         while j <= len(node.text):
             if node.text[i:j] == str_link:
                 if abs(start - i) != 0:
-                    new_nodes.append(TextNode(text=node.text[start:i], type=TextType.TEXT))
+                    new_nodes.append(
+                        TextNode(text=node.text[start:i], type=TextType.TEXT)
+                    )
                 new_nodes.append(TextNode(text=hyperlink, type=TextType.LINK, url=url))
-                i += len(str_link) 
+                i += len(str_link)
                 start = i
                 if not extracted_links:
                     break
 
                 hyperlink, url = extracted_links.pop()
-                str_link = f'[{hyperlink}]({url})'
+                str_link = f"[{hyperlink}]({url})"
 
                 j = i + len(str_link)
                 continue
@@ -124,10 +127,11 @@ def split_links(nodes: List[TextNode]) -> List[TextNode]:
 
     return new_nodes
 
+
 def splitter(node: TextNode) -> List[TextNode]:
     images_split = split_images([node])
     links_split = split_links(images_split)
-    bolds_split = split_nodes(links_split, '**', TextType.BOLD)
-    italics_split = split_nodes(bolds_split, '*', TextType.ITALIC)
-    codes_split = split_nodes(italics_split, '`', TextType.CODE)
+    bolds_split = split_nodes(links_split, "**", TextType.BOLD)
+    italics_split = split_nodes(bolds_split, "*", TextType.ITALIC)
+    codes_split = split_nodes(italics_split, "`", TextType.CODE)
     return codes_split
