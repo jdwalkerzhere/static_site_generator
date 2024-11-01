@@ -1,15 +1,15 @@
 from typing import Any, Dict, List
 
 from md_to_blocks import markdown_to_blocks, block_to_block_type, block_spec
-from split_nodes import splitter
+from split_nodes import split_nodes, splitter
 from textnode import TextType, TextNode
 
 
 class HTMLNode:
-    def __init__(self, tag=None, value=None, children=[], props=None) -> None:
+    def __init__(self, tag=None, value=None, children=None, props=None) -> None:
         self.tag: str | None = tag
         self.value: str | None = value
-        self.children: List[HTMLNode] = children
+        self.children: List[HTMLNode] | None = children
         self.props: Dict[str, Any] | None = props
 
     def __eq__(self, value: object, /) -> bool:
@@ -30,7 +30,7 @@ class HTMLNode:
 
 
 class LeafNode(HTMLNode):
-    def __init__(self, tag=None, value=None, children=[], props=None) -> None:
+    def __init__(self, tag=None, value=None, children=None, props=None) -> None:
         super().__init__(tag, value, children, props)
 
     def to_html(self):
@@ -44,7 +44,7 @@ class LeafNode(HTMLNode):
 
 
 class ParentNode(HTMLNode):
-    def __init__(self, tag=None, value=None, children=[], props=None) -> None:
+    def __init__(self, tag=None, value=None, children=None, props=None) -> None:
         super().__init__(tag, value, children, props)
 
     def to_html(self) -> str:
@@ -76,9 +76,8 @@ def text_node_to_html_node(textnode: TextNode) -> LeafNode:
             raise ValueError(f"Non-implemented TextNode Type: {textnode.text_type}")
 
 
-def md_to_html_doc(markdown: str) -> str:
-    root_node = ParentNode(tag="div")
-
+def md_to_html_doc(markdown: str) -> ParentNode:
+    root_node = ParentNode(tag="div", children=[])
     blocked_md = markdown_to_blocks(markdown)
 
     for block in blocked_md:
@@ -102,21 +101,22 @@ def md_to_html_doc(markdown: str) -> str:
                 code_block = ParentNode(tag="pre", children=[leafnode])
                 root_node.children.append(code_block)
 
-            # Possibility: Make each line of the quote its own seperate <p> tagged Leaf Node?
             case "QUOTE":
-                text_nodes = [
-                    TextNode(text=l.strip("> "), type=TextType.TEXT)
-                    for l in block.split("\n")
-                ]
-                p_tag_leaves = [LeafNode(tag="p", value=n.text) for n in text_nodes]
-                quote_node = ParentNode(tag="blockquote", children=p_tag_leaves)
+                text = "\n".join(l.lstrip('> ') for l in block.split('\n'))
+                quote_node = LeafNode(tag='blockquote', value=text)
                 root_node.children.append(quote_node)
             case "UNORDERED_LIST":
                 text_nodes = [
-                    TextNode(text=l.lstrip("*- "), type=TextType.TEXT)
+                    TextNode(text=l[l.index(' ')+1:], type=TextType.TEXT)
                     for l in block.split("\n")
                 ]
-                children = [LeafNode(tag="li", value=n.text) for n in text_nodes]
+                children = []
+                for node in text_nodes:
+                    split_node = splitter(node)
+                    joined = "".join(text_node_to_html_node(n).to_html() for n in split_node)
+                    leaf = LeafNode(tag='li', value=joined)
+                    children.append(leaf)
+
                 list_parent = ParentNode(tag="ul", children=children)
                 root_node.children.append(list_parent)
 
@@ -125,7 +125,14 @@ def md_to_html_doc(markdown: str) -> str:
                     TextNode(text=l[l.index(" ") + 1 :], type=TextType.TEXT)
                     for l in block.split("\n")
                 ]
-                children = [LeafNode(tag="li", value=n.text) for n in text_nodes]
+
+                children = []
+                for node in text_nodes:
+                    split_node = splitter(node)
+                    joined = "".join(text_node_to_html_node(n).to_html() for n in split_node)
+                    leaf = LeafNode(tag='li', value=joined)
+                    children.append(leaf)
+
                 list_parent = ParentNode(tag="ol", children=children)
                 root_node.children.append(list_parent)
 
@@ -138,4 +145,4 @@ def md_to_html_doc(markdown: str) -> str:
             case _:
                 raise ValueError(f"Unexpected block type: {block_type}")
 
-    return root_node.to_html()
+    return root_node

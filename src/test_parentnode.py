@@ -35,8 +35,5 @@ class TestParentNode(unittest.TestCase):
             props={"href": "https://boot.dev"},
         )
         html_string = node.to_html()
-        print()
-        print(html_string)
         correct_string = '<div href="https://boot.dev"><b>Bold text</b>Normal text<i>Italic text</i><code>python3 main.py</code></div>'
-        print(correct_string)
         self.assertEqual(html_string, correct_string)
